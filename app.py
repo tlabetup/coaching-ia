@@ -6,6 +6,8 @@ Déploiement : https://share.streamlit.io
 """
 
 import os
+import io
+import zipfile
 from pathlib import Path
 import streamlit as st
 import anthropic
@@ -232,6 +234,49 @@ st.set_page_config(
     page_icon="🎯",
     layout="centered"
 )
+
+# ─── Sidebar : export / import ────────────────────────────────────────────────
+
+with st.sidebar:
+    st.header("Ma progression")
+
+    prenom = st.text_input("Ton prénom (pour export/import)", key="prenom_sidebar")
+
+    # Export
+    if prenom:
+        dossier = BASE_DIR / "apprenants" / prenom.lower()
+        if dossier.exists():
+            buffer = io.BytesIO()
+            with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zf:
+                for fichier in dossier.rglob("*"):
+                    if fichier.is_file():
+                        zf.write(fichier, fichier.relative_to(BASE_DIR))
+            buffer.seek(0)
+            st.download_button(
+                label="⬇️ Exporter ma progression",
+                data=buffer,
+                file_name=f"progression_{prenom.lower()}.zip",
+                mime="application/zip"
+            )
+        else:
+            st.caption("Pas encore de progression sauvegardée.")
+
+    st.divider()
+
+    # Import
+    st.caption("Reprendre une session précédente :")
+    fichier_importe = st.file_uploader(
+        "Importer ma progression (.zip)",
+        type="zip",
+        key="import_zip"
+    )
+    if fichier_importe:
+        with zipfile.ZipFile(io.BytesIO(fichier_importe.read())) as zf:
+            zf.extractall(BASE_DIR)
+        st.success("Progression restaurée ✓")
+        st.rerun()
+
+# ─── Interface principale ─────────────────────────────────────────────────────
 
 st.title("🎯 Learning Assistant")
 st.caption("Coach IA — Développement de compétences en entreprise")
