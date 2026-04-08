@@ -11,7 +11,6 @@ import zipfile
 from pathlib import Path
 import streamlit as st
 import anthropic
-import openai
 
 # ─── Configuration ────────────────────────────────────────────────────────────
 
@@ -288,10 +287,6 @@ if "conversation" not in st.session_state:
     st.session_state.conversation = []
 if "messages_affiches" not in st.session_state:
     st.session_state.messages_affiches = []
-if "transcription_pending" not in st.session_state:
-    st.session_state.transcription_pending = None
-if "last_audio_hash" not in st.session_state:
-    st.session_state.last_audio_hash = None
 
 # Affichage de l'historique
 for msg in st.session_state.messages_affiches:
@@ -310,43 +305,6 @@ if not st.session_state.messages_affiches:
         "role": "assistant",
         "content": "Bonjour ! Je suis ton learning assistant. Pour commencer, quel est ton prénom ?"
     })
-
-# ─── Micro inline (à côté du chat input) ─────────────────────────────────────
-
-audio_data = st.audio_input("🎤", label_visibility="collapsed", key="mic_inline")
-
-if audio_data is not None:
-    audio_bytes = audio_data.read()
-    audio_hash = hash(audio_bytes)
-    if audio_hash != st.session_state.last_audio_hash:
-        st.session_state.last_audio_hash = audio_hash
-        openai_key = st.secrets.get("OPENAI_API_KEY") or os.environ.get("OPENAI_API_KEY")
-        if openai_key:
-            with st.spinner("Transcription..."):
-                try:
-                    oa_client = openai.OpenAI(api_key=openai_key)
-                    transcription = oa_client.audio.transcriptions.create(
-                        model="whisper-1",
-                        file=("audio.wav", audio_bytes),
-                    )
-                    st.session_state.transcription_pending = transcription.text
-                    st.rerun()
-                except Exception as e:
-                    st.error(f"Erreur transcription : {e}")
-
-# Injection de la transcription en attente
-if st.session_state.transcription_pending:
-    prompt_transcrit = st.session_state.transcription_pending
-    st.session_state.transcription_pending = None
-    with st.chat_message("user"):
-        st.markdown(prompt_transcrit)
-    st.session_state.messages_affiches.append({"role": "user", "content": prompt_transcrit})
-    st.session_state.conversation.append({"role": "user", "content": prompt_transcrit})
-    with st.chat_message("assistant"):
-        with st.spinner("..."):
-            reponse = appeler_claude(st.session_state.conversation)
-        st.markdown(reponse)
-    st.session_state.messages_affiches.append({"role": "assistant", "content": reponse})
 
 # Saisie utilisateur
 if prompt := st.chat_input("Votre message..."):
