@@ -270,11 +270,14 @@ with st.sidebar:
         type="zip",
         key="import_zip"
     )
-    if fichier_importe:
+    if fichier_importe and not st.session_state.get("import_fait"):
         with zipfile.ZipFile(io.BytesIO(fichier_importe.read())) as zf:
             zf.extractall(BASE_DIR)
+        st.session_state.import_fait = True
         st.success("Progression restaurée ✓")
         st.rerun()
+    if not fichier_importe:
+        st.session_state.import_fait = False
 
 
 # ─── Interface principale ─────────────────────────────────────────────────────
