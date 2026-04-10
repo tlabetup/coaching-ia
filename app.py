@@ -194,6 +194,12 @@ def executer_outil(nom, params):
 
 def appeler_claude(conversation):
     api_key = st.secrets.get("ANTHROPIC_API_KEY") or os.environ.get("ANTHROPIC_API_KEY")
+    if not api_key:
+        return (
+            "**Clé API manquante.** Sur Streamlit Cloud : *App settings → Secrets* avec "
+            "`ANTHROPIC_API_KEY = \"sk-ant-...\"`. En local : `.streamlit/secrets.toml` ou "
+            "`export ANTHROPIC_API_KEY=...`."
+        )
     client = anthropic.Anthropic(api_key=api_key)
 
     while True:
@@ -304,10 +310,7 @@ if not st.session_state.messages_affiches:
         "role": "assistant",
         "content": "Bonjour ! Je suis ton learning assistant. Pour commencer, quel est ton prénom ?"
     })
-    st.session_state.conversation.append({
-        "role": "assistant",
-        "content": "Bonjour ! Je suis ton learning assistant. Pour commencer, quel est ton prénom ?"
-    })
+    # Ne pas pré-remplir `conversation` : l’API attend un premier message utilisateur.
 
 # Saisie utilisateur
 if prompt := st.chat_input("Votre message..."):
