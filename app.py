@@ -7,6 +7,7 @@ Déploiement : https://share.streamlit.io
 
 import os
 import io
+import shutil
 import zipfile
 from pathlib import Path
 import streamlit as st
@@ -284,6 +285,31 @@ with st.sidebar:
         st.rerun()
     if not fichier_importe:
         st.session_state.import_fait = False
+
+    st.divider()
+    st.subheader("Repartir de zéro")
+    st.caption(
+        "En ligne, les fichiers sous `apprenants/` restent sur le serveur Streamlit "
+        "même si tu fermes l’onglet ou que tu rafraîchis. Le coach te « reconnaît » "
+        "tant que ce dossier existe."
+    )
+    if prenom:
+        conf_reset = st.checkbox(
+            f"Je confirme : supprimer tout le dossier **{prenom.lower()}/** "
+            "(profil, scores, sessions)",
+            key="confirm_reset_progression",
+        )
+        if conf_reset and st.button("Effacer cette progression et le chat", type="primary"):
+            cible = BASE_DIR / "apprenants" / prenom.lower()
+            if cible.exists():
+                shutil.rmtree(cible)
+            st.session_state.pop("conversation", None)
+            st.session_state.pop("messages_affiches", None)
+            st.session_state.pop("confirm_reset_progression", None)
+            st.success("C’est effacé. La conversation redémarre.")
+            st.rerun()
+    else:
+        st.caption("Indique ton prénom ci-dessus pour activer la suppression.")
 
 
 # ─── Interface principale ─────────────────────────────────────────────────────
